@@ -1,0 +1,1043 @@
+```react
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  Sparkles,
+  Bot,
+  Zap,
+  ShieldCheck,
+  TrendingUp,
+  Cpu,
+  Database,
+  Workflow,
+  Check,
+  ArrowRight,
+  Sliders,
+  Play,
+  RotateCcw,
+  Copy,
+  Terminal,
+  HelpCircle,
+  ChevronDown,
+  Menu,
+  X,
+  Lock,
+  Layers,
+  Award,
+  BarChart,
+  Users,
+  CheckCircle2,
+  ExternalLink,
+  MessageSquare
+} from 'lucide-react';
+
+const SERVICES_DATA = [
+  {
+    id: 'agents',
+    title: 'Custom AI Agents & Assistants',
+    category: 'automation',
+    description: 'Autonomous AI agents engineered to perform complex, multi-step business workflows without human supervision.',
+    icon: Bot,
+    badges: ['Multi-Modal', 'Autonomous', 'Tool-Use'],
+    benefits: ['24/7 Continuous Execution', '70% reduction in support response times', 'Seamless integration with Slack, Teams, & CRM']
+  },
+  {
+    id: 'rag',
+    title: 'Enterprise RAG & Knowledge Base',
+    category: 'data',
+    description: 'Secure, real-time Retrieval-Augmented Generation that connects your private enterprise data with leading LLMs.',
+    icon: Database,
+    badges: ['Zero Data Leakage', 'VectorDB', 'Hallucination Guardrails'],
+    benefits: ['Instant accurate retrieval from internal documentation', 'Strict role-based access control', 'Supports PDF, Notion, SQL, & Confluence']
+  },
+  {
+    id: 'workflow',
+    title: 'Process Automation & Orchestration',
+    category: 'automation',
+    description: 'End-to-end intelligent automation replacing tedious manual data processing, parsing, and pipeline handoffs.',
+    icon: Workflow,
+    badges: ['Zapier/Make Ready', 'Custom API Pipelines', 'n8n Native'],
+    benefits: ['Eliminate repetitive manual entry', 'Real-time structured JSON extraction', 'Scalable serverless deployment']
+  },
+  {
+    id: 'strategy',
+    title: 'AI Strategy & Governance Advisory',
+    category: 'advisory',
+    description: 'Executive guidance on AI roadmaps, compliance compliance frameworks, vendor evaluation, and cost optimization.',
+    icon: ShieldCheck,
+    badges: ['SOC2 Readiness', 'EU AI Act Compliant', 'Cost Tuning'],
+    benefits: ['Mitigate security and regulatory risks', 'Optimize LLM API token spend by up to 40%', 'Clear ROI roadmap before execution']
+  }
+];
+
+const DEMO_PRESETS = [
+  {
+    id: 'summarizer',
+    name: 'Executive Text Summarizer',
+    icon: Sparkles,
+    prompt: 'Summarize the attached operational performance update highlighting key risks, financial takeaways, and key action items for the Q3 executive board review.',
+    sampleOutput: `### Executive Summary: Q3 Operational & Financial Review\n\n**1. Financial Performance:**\n- **ARR Growth:** Reached $14.2M (+18% QoQ), driven by enterprise account expansion.\n- **Gross Margin:** Maintained at 78% despite increased infrastructure workloads.\n\n**2. Core Operational Risks Identified:**\n- **Token API Overages:** Unoptimized model queries caused a 12% drift over projected cloud spend.\n- **Deployment Lag:** Lead time for custom model fine-tuning increased from 3 days to 7 days due to queue bottlenecks.\n\n**3. Priority Action Items:**\n- Deploy semantic caching to reduce redundant LLM API hits immediately.\n- Transition non-latency-critical workloads to lighter fine-tuned open-weights models.`
+  },
+  {
+    id: 'sql',
+    name: 'Natural Language SQL Engine',
+    icon: Terminal,
+    prompt: 'Find top 5 highest spending enterprise clients in North America who expanded their usage by more than 20% in the last 30 days.',
+    sampleOutput: `\`\`\`sql\nSELECT \n    c.customer_id,\n    c.company_name,\n    SUM(i.amount_usd) AS total_spend,\n    m.usage_growth_pct\nFROM customers c\nJOIN invoices i ON c.customer_id = i.customer_id\nJOIN metrics m ON c.customer_id = m.customer_id\nWHERE \n    c.region = 'North America'\n    AND c.plan_tier = 'Enterprise'\n    AND m.usage_growth_pct > 20.0\n    AND i.created_at >= NOW() - INTERVAL '30 days'\nGROUP BY c.customer_id, c.company_name, m.usage_growth_pct\nORDER BY total_spend DESC\nLIMIT 5;\n\`\`\``
+  },
+  {
+    id: 'support',
+    name: 'Tier-1 Customer Support Bot',
+    icon: MessageSquare,
+    prompt: 'A customer is asking: "How do I set up custom domain routing with single sign-on (SSO) on my enterprise tier?"',
+    sampleOutput: `Hello! Setting up custom domain routing with SAML 2.0 / SSO is straightforward on the Enterprise Plan:\n\n1. **Navigate to Organization Settings:** Go to **Admin Console** > **Security & Domain**.\n2. **Add Custom Domain:** Enter your sub-domain (e.g., \`ai.yourcompany.com\`) and copy the generated CNAME target.\n3. **DNS Validation:** Add the CNAME record in your DNS provider (e.g., Cloudflare, Route53).\n4. **Configure Identity Provider (IdP):** Download our SAML Metadata XML and paste your Azure AD or Okta Issuer URL into the portal.\n\n*Would you like me to send a test payload to verify your SAML handshake?*`
+  }
+];
+
+const FAQS = [
+  {
+    q: 'How long does a typical AI implementation take from start to finish?',
+    a: 'Proof of Concept (PoC) builds are typically delivered in 2 to 3 weeks. Full enterprise production deployments with custom RAG, tool integrations, and compliance auditing generally take between 4 to 8 weeks depending on scope.'
+  },
+  {
+    q: 'Is our proprietary enterprise data kept private and confidential?',
+    a: 'Absolutely. We enforce Zero Data Retention (ZDR) architecture, custom VPC deployments, and client-dedicated LLM endpoints. Your enterprise data is never used to train public models.'
+  },
+  {
+    q: 'Can NovaAI integrate into our existing legacy systems?',
+    a: 'Yes! We specialize in building secure API bridges and custom middleware connectors that interface smoothly with legacy SQL databases, custom CRMs, ERPs, Slack, Salesforce, and internal REST endpoints.'
+  },
+  {
+    q: 'What LLMs or foundational models do you support?',
+    a: 'We are model-agnostic. We work with OpenAI (GPT-4o), Anthropic (Claude 3.5 Sonnet), Google Gemini 1.5, Llama 3 open-weights, and specialized open-source models self-hosted on AWS, Azure, or GCP.'
+  }
+];
+
+export default function App() {
+  // Navigation & UI States
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Filter State for Services
+  const [activeCategory, setActiveCategory] = useState('all');
+
+  // Interactive AI Demo State
+  const [selectedDemo, setSelectedDemo] = useState(DEMO_PRESETS[0]);
+  const [promptText, setPromptText] = useState(DEMO_PRESETS[0].prompt);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [displayedOutput, setDisplayedOutput] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  // ROI Calculator State
+  const [teamSize, setTeamSize] = useState(25);
+  const [hourlyRate, setHourlyRate] = useState(65);
+  const [manualHoursPerWeek, setManualHoursPerWeek] = useState(12);
+
+  // Pricing Toggle State
+  const [billingCycle, setBillingCycle] = useState('annual'); // 'monthly' | 'annual'
+
+  // FAQ Toggle State
+  const [openFaq, setOpenFaq] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const runAiDemo = () => {
+    if (isGenerating) return;
+    setIsGenerating(true);
+    setDisplayedOutput('');
+
+    const targetText = selectedDemo.sampleOutput;
+    let currentIndex = 0;
+
+    const interval = setInterval(() => {
+      if (currentIndex <= targetText.length) {
+        setDisplayedOutput(targetText.slice(0, currentIndex));
+        currentIndex += 4; // stream speed
+      } else {
+        setDisplayedOutput(targetText);
+        setIsGenerating(false);
+        clearInterval(interval);
+      }
+    }, 15);
+  };
+
+  const handleSelectDemo = (preset) => {
+    setSelectedDemo(preset);
+    setPromptText(preset.prompt);
+    setDisplayedOutput('');
+  };
+
+  const handleCopyOutput = () => {
+    if (!displayedOutput) return;
+    navigator.clipboard.writeText(displayedOutput);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const roiMetrics = useMemo(() => {
+    const weeklyHoursSavedPerPerson = manualHoursPerWeek * 0.70; // 70% efficiency boost
+    const totalWeeklyHoursSaved = weeklyHoursSavedPerPerson * teamSize;
+    const annualHoursSaved = Math.round(totalWeeklyHoursSaved * 50); // 50 working weeks
+    const annualDollarSavings = Math.round(annualHoursSaved * hourlyRate);
+    const estimatedPlatformCost = Math.min(30000, Math.round(annualDollarSavings * 0.12));
+    const netSavings = Math.max(0, annualDollarSavings - estimatedPlatformCost);
+    const returnMultiplier = Math.max(1, Math.round((annualDollarSavings / Math.max(1, estimatedPlatformCost)) * 10) / 10);
+
+    return {
+      annualHoursSaved,
+      annualDollarSavings,
+      netSavings,
+      returnMultiplier
+    };
+  }, [teamSize, hourlyRate, manualHoursPerWeek]);
+
+  const filteredServices = useMemo(() => {
+    if (activeCategory === 'all') return SERVICES_DATA;
+    return SERVICES_DATA.filter((s) => s.category === activeCategory);
+  }, [activeCategory]);
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-purple-500 selection:text-white antialiased overflow-x-hidden">
+      {/* Background Decorative Neon Gradients */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-purple-600/20 rounded-full blur-[120px]" />
+        <div className="absolute top-1/3 -right-40 w-[30rem] h-[30rem] bg-indigo-600/15 rounded-full blur-[140px]" />
+        <div className="absolute -bottom-40 left-1/3 w-[35rem] h-[35rem] bg-violet-800/15 rounded-full blur-[160px]" />
+      </div>
+
+      {}
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          isScrolled
+            ? 'bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 py-3 shadow-xl shadow-black/40'
+            : 'bg-transparent py-5'
+        }`}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+          {/* Logo */}
+          <a href="#" className="flex items-center gap-2 group">
+            <div className="p-2 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 text-white shadow-lg shadow-purple-500/25 group-hover:scale-105 transition-transform">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-200 to-purple-400 bg-clip-text text-transparent">
+              Nova<span className="text-purple-400">AI</span>
+            </span>
+          </a>
+
+          {/* Desktop Nav Items */}
+          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
+            <a href="#services" className="hover:text-purple-400 transition-colors">Services</a>
+            <a href="#demo" className="hover:text-purple-400 transition-colors">AI Playground</a>
+            <a href="#calculator" className="hover:text-purple-400 transition-colors">ROI Calculator</a>
+            <a href="#pricing" className="hover:text-purple-400 transition-colors">Pricing</a>
+            <a href="#faq" className="hover:text-purple-400 transition-colors">FAQ</a>
+          </nav>
+
+          {/* Header Action Button */}
+          <div className="hidden md:flex items-center gap-4">
+            <a
+              href="#pricing"
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold text-sm shadow-lg shadow-purple-600/30 hover:shadow-purple-600/50 hover:scale-[1.02] transition-all flex items-center gap-2"
+            >
+              Get Started <ArrowRight className="w-4 h-4" />
+            </a>
+          </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white"
+            aria-label="Toggle Navigation"
+          >
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
+
+        {/* Mobile Dropdown Nav */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-slate-950/95 border-b border-slate-800 backdrop-blur-xl px-4 pt-4 pb-6 space-y-3">
+            <a
+              href="#services"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block text-slate-300 hover:text-purple-400 py-2 font-medium"
+            >
+              Services
+            </a>
+            <a
+              href="#demo"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block text-slate-300 hover:text-purple-400 py-2 font-medium"
+            >
+              AI Playground
+            </a>
+            <a
+              href="#calculator"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block text-slate-300 hover:text-purple-400 py-2 font-medium"
+            >
+              ROI Calculator
+            </a>
+            <a
+              href="#pricing"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block text-slate-300 hover:text-purple-400 py-2 font-medium"
+            >
+              Pricing
+            </a>
+            <a
+              href="#faq"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block text-slate-300 hover:text-purple-400 py-2 font-medium"
+            >
+              FAQ
+            </a>
+            <a
+              href="#pricing"
+              onClick={() => setMobileMenuOpen(false)}
+              className="w-full mt-2 py-3 text-center block rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold"
+            >
+              Get Started
+            </a>
+          </div>
+        )}
+      </header>
+
+      {}
+      <section className="relative pt-32 pb-20 md:pt-44 md:pb-32 overflow-hidden z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          {/* Top Pill Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-950/60 border border-purple-500/30 text-purple-300 text-xs sm:text-sm font-medium mb-8 shadow-inner shadow-purple-500/10 backdrop-blur-md">
+            <Sparkles className="w-4 h-4 text-purple-400 animate-pulse" />
+            <span>Next-Gen Enterprise AI Engineering Agency</span>
+          </div>
+
+          {/* Headline */}
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white leading-[1.15] max-w-5xl mx-auto">
+            Transform Your Business with{' '}
+            <span className="bg-gradient-to-r from-purple-400 via-violet-300 to-indigo-400 bg-clip-text text-transparent">
+              Enterprise-Grade AI Services
+            </span>
+          </h1>
+
+          {/* Subtitle */}
+          <p className="mt-6 text-lg sm:text-xl text-slate-400 max-w-3xl mx-auto leading-relaxed">
+            We build custom autonomous AI agents, fine-tuned RAG knowledge systems, and fault-tolerant automated pipelines designed to scale operations and accelerate revenue.
+          </p>
+
+          {/* Call To Actions */}
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto sm:max-w-none">
+            <a
+              href="#services"
+              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-base shadow-xl shadow-purple-600/30 hover:shadow-purple-600/50 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
+            >
+              Explore Solutions <ArrowRight className="w-5 h-5" />
+            </a>
+            <a
+              href="#demo"
+              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700/80 font-semibold text-base backdrop-blur-md hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2"
+            >
+              <Play className="w-4 h-4 text-purple-400 fill-purple-400" /> Try Live AI Demo
+            </a>
+          </div>
+
+          {/* Key Metrics Stat Banner */}
+          <div className="mt-16 sm:mt-24 grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-5xl mx-auto">
+            <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800/80 backdrop-blur-md">
+              <div className="text-3xl sm:text-4xl font-extrabold text-white bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
+                99.9%
+              </div>
+              <div className="mt-1 text-xs sm:text-sm text-slate-400 font-medium">Uptime Guarantee SLA</div>
+            </div>
+            <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800/80 backdrop-blur-md">
+              <div className="text-3xl sm:text-4xl font-extrabold text-white bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
+                10x
+              </div>
+              <div className="mt-1 text-xs sm:text-sm text-slate-400 font-medium">Average Client ROI</div>
+            </div>
+            <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800/80 backdrop-blur-md">
+              <div className="text-3xl sm:text-4xl font-extrabold text-white bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
+                50M+
+              </div>
+              <div className="mt-1 text-xs sm:text-sm text-slate-400 font-medium">API Tokens Handled / Day</div>
+            </div>
+            <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800/80 backdrop-blur-md">
+              <div className="text-3xl sm:text-4xl font-extrabold text-white bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
+                &lt; 200ms
+              </div>
+              <div className="mt-1 text-xs sm:text-sm text-slate-400 font-medium">Avg Vector Retrieval</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {}
+      <section id="services" className="py-20 relative z-10 bg-slate-950/60 border-t border-slate-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto">
+            <h2 className="text-xs uppercase tracking-widest font-bold text-purple-400">Core Engineering Capacities</h2>
+            <p className="mt-2 text-3xl sm:text-4xl font-bold text-white tracking-tight">
+              Tailored AI Solutions Built for Scale
+            </p>
+            <p className="mt-4 text-slate-400 text-base">
+              From automated internal agents to high-throughput secure RAG architectures, we engineer custom systems aligned with your target business metrics.
+            </p>
+          </div>
+
+          {/* Filter Categories */}
+          <div className="mt-8 flex justify-center items-center gap-2 flex-wrap">
+            {[
+              { id: 'all', label: 'All Services' },
+              { id: 'automation', label: 'Agents & Workflows' },
+              { id: 'data', label: 'Data & RAG' },
+              { id: 'advisory', label: 'Strategy & Security' }
+            ].map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  activeCategory === cat.id
+                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
+                    : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Services Grid */}
+          <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
+            {filteredServices.map((service) => {
+              const IconComp = service.icon;
+              return (
+                <div
+                  key={service.id}
+                  className="group relative p-8 rounded-3xl bg-slate-900/60 border border-slate-800 hover:border-purple-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-900/20 flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="p-3 rounded-2xl bg-purple-950/80 border border-purple-500/30 text-purple-400 group-hover:scale-110 transition-transform">
+                        <IconComp className="w-7 h-7" />
+                      </div>
+                      <div className="flex gap-2 flex-wrap justify-end">
+                        {service.badges.map((badge, bIdx) => (
+                          <span
+                            key={bIdx}
+                            className="px-2.5 py-1 rounded-md text-[11px] font-medium bg-slate-800 text-slate-300 border border-slate-700"
+                          >
+                            {badge}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <h3 className="text-2xl font-bold text-white group-hover:text-purple-300 transition-colors">
+                      {service.title}
+                    </h3>
+                    <p className="mt-3 text-slate-400 leading-relaxed text-sm sm:text-base">
+                      {service.description}
+                    </p>
+
+                    <div className="mt-6 pt-6 border-t border-slate-800/80">
+                      <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-3">
+                        Key Value Delivered:
+                      </h4>
+                      <ul className="space-y-2">
+                        {service.benefits.map((benefit, idx) => (
+                          <li key={idx} className="flex items-start gap-2 text-xs sm:text-sm text-slate-300">
+                            <CheckCircle2 className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                            <span>{benefit}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 pt-4">
+                    <a
+                      href="#pricing"
+                      className="inline-flex items-center gap-2 text-sm font-semibold text-purple-400 group-hover:text-purple-300 hover:underline"
+                    >
+                      Request Architecture Proposal <ArrowRight className="w-4 h-4" />
+                    </a>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {}
+      <section id="demo" className="py-20 relative z-10 bg-slate-950">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-indigo-950 text-indigo-300 border border-indigo-800">
+              Interactive Testbench
+            </span>
+            <h2 className="mt-3 text-3xl sm:text-4xl font-bold text-white tracking-tight">
+              Test Our Live AI Output Generator
+            </h2>
+            <p className="mt-3 text-slate-400">
+              Experience the speed, structured clarity, and precision of custom tuned models running real enterprise prompts.
+            </p>
+          </div>
+
+          {/* Playground Interface Window */}
+          <div className="max-w-5xl mx-auto bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12">
+            {/* Sidebar Presets */}
+            <div className="lg:col-span-4 bg-slate-950/80 p-6 border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col justify-between">
+              <div>
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
+                  Select Demo Model
+                </h3>
+                <div className="space-y-3">
+                  {DEMO_PRESETS.map((preset) => {
+                    const PresetIcon = preset.icon;
+                    const isSelected = selectedDemo.id === preset.id;
+                    return (
+                      <button
+                        key={preset.id}
+                        onClick={() => handleSelectDemo(preset)}
+                        className={`w-full p-3.5 rounded-2xl text-left flex items-center gap-3 transition-all ${
+                          isSelected
+                            ? 'bg-purple-600/20 border border-purple-500/50 text-white'
+                            : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                        }`}
+                      >
+                        <div
+                          className={`p-2 rounded-xl ${
+                            isSelected ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-400'
+                          }`}
+                        >
+                          <PresetIcon className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm font-semibold">{preset.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="mt-8 p-4 rounded-2xl bg-slate-900 border border-slate-800 text-xs text-slate-400">
+                <p className="font-semibold text-slate-300 mb-1">Latency SLA Benchmark</p>
+                <p>Streaming output simulated with sub-100ms first-token response times.</p>
+              </div>
+            </div>
+
+            {/* Main Interactive Terminal / Workspace */}
+            <div className="lg:col-span-8 p-6 sm:p-8 flex flex-col justify-between bg-slate-900/90">
+              <div>
+                {/* Prompt Box */}
+                <div className="mb-6">
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                    Input Prompt Payload
+                  </label>
+                  <div className="relative">
+                    <textarea
+                      value={promptText}
+                      onChange={(e) => setPromptText(e.target.value)}
+                      rows={3}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-slate-200 text-sm focus:outline-none focus:border-purple-500 transition-colors resize-none font-mono"
+                    />
+                    <button
+                      onClick={() => setPromptText(selectedDemo.prompt)}
+                      className="absolute top-2 right-2 p-1.5 rounded-lg bg-slate-800 text-slate-400 hover:text-white text-xs flex items-center gap-1"
+                      title="Reset Prompt"
+                    >
+                      <RotateCcw className="w-3 h-3" /> Reset
+                    </button>
+                  </div>
+                </div>
+
+                {/* Run CTA Button */}
+                <button
+                  onClick={runAiDemo}
+                  disabled={isGenerating}
+                  className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-50 text-white font-bold text-sm shadow-lg shadow-purple-600/30 flex items-center justify-center gap-2 transition-all"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Sparkles className="w-4 h-4 animate-spin" /> Stream-Processing Stream Payload...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-4 h-4 fill-white" /> Run Simulation Engine
+                    </>
+                  )}
+                </button>
+
+                {/* Simulated Output Frame */}
+                <div className="mt-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                      <Terminal className="w-4 h-4 text-purple-400" /> AI Execution Output
+                    </span>
+                    {displayedOutput && (
+                      <button
+                        onClick={handleCopyOutput}
+                        className="text-xs text-slate-400 hover:text-purple-300 flex items-center gap-1"
+                      >
+                        {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+                        {copied ? 'Copied' : 'Copy'}
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="min-h-[200px] max-h-[280px] overflow-y-auto bg-slate-950 border border-slate-800 rounded-xl p-4 font-mono text-xs sm:text-sm text-slate-300 whitespace-pre-wrap leading-relaxed shadow-inner">
+                    {displayedOutput ? (
+                      displayedOutput
+                    ) : (
+                      <span className="text-slate-600 italic">
+                        Click "Run Simulation Engine" above to view live generated output...
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {}
+      <section id="calculator" className="py-20 relative z-10 bg-slate-950/80 border-t border-slate-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            {/* Left Column Text */}
+            <div className="lg:col-span-5">
+              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-950 text-green-300 border border-green-800">
+                Interactive ROI Tool
+              </span>
+              <h2 className="mt-4 text-3xl sm:text-4xl font-bold text-white tracking-tight">
+                Calculate Your Projected Automation ROI
+              </h2>
+              <p className="mt-4 text-slate-400 leading-relaxed">
+                See how much time and operational expenses your enterprise can reclaim by replacing manual operational bottlenecks with engineered AI workflows.
+              </p>
+
+              <div className="mt-8 space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-purple-400">
+                    <TrendingUp className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-white text-sm">70% Repetitive Task Savings</h4>
+                    <p className="text-xs text-slate-400">Average time saved across customer service, parsing, & reports.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-indigo-400">
+                    <Sliders className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-white text-sm">Predictable Token Budgeting</h4>
+                    <p className="text-xs text-slate-400">Zero surprise billing with active token caching and routing optimization.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column Interactive Sliders & Live Results */}
+            <div className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
+              <h3 className="text-xl font-bold text-white mb-6 border-b border-slate-800 pb-4">
+                Configure Team Variables
+              </h3>
+
+              <div className="space-y-6">
+                {/* Team Size Slider */}
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="text-sm font-semibold text-slate-300">Team Members Impacted</label>
+                    <span className="text-sm font-bold text-purple-400">{teamSize} Employees</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="5"
+                    max="200"
+                    step="5"
+                    value={teamSize}
+                    onChange={(e) => setTeamSize(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-500 mt-1">
+                    <span>5</span>
+                    <span>100</span>
+                    <span>200+</span>
+                  </div>
+                </div>
+
+                {/* Hourly Rate Slider */}
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="text-sm font-semibold text-slate-300">Average Blended Hourly Rate ($)</label>
+                    <span className="text-sm font-bold text-purple-400">${hourlyRate}/hr</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="25"
+                    max="200"
+                    step="5"
+                    value={hourlyRate}
+                    onChange={(e) => setHourlyRate(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-500 mt-1">
+                    <span>$25/hr</span>
+                    <span>$100/hr</span>
+                    <span>$200/hr</span>
+                  </div>
+                </div>
+
+                {/* Manual Hours Slider */}
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="text-sm font-semibold text-slate-300">
+                      Manual Hours / Employee / Week Spent on Routine Tasks
+                    </label>
+                    <span className="text-sm font-bold text-purple-400">{manualHoursPerWeek} hrs/wk</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="2"
+                    max="30"
+                    step="1"
+                    value={manualHoursPerWeek}
+                    onChange={(e) => setManualHoursPerWeek(Number(e.target.value))}
+                    className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-500 mt-1">
+                    <span>2 hrs</span>
+                    <span>15 hrs</span>
+                    <span>30 hrs</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Live Output Banner Card */}
+              <div className="mt-8 p-6 rounded-2xl bg-gradient-to-br from-purple-950/80 via-slate-900 to-slate-950 border border-purple-500/30 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                  <span className="text-xs uppercase tracking-wider font-semibold text-purple-300">
+                    Est. Annual Hours Reclaimed
+                  </span>
+                  <div className="text-3xl font-extrabold text-white mt-1">
+                    {roiMetrics.annualHoursSaved.toLocaleString()} hrs
+                  </div>
+                  <span className="text-xs text-slate-400">Equivalent to ~{(roiMetrics.annualHoursSaved / 2000).toFixed(1)} FTEs</span>
+                </div>
+
+                <div>
+                  <span className="text-xs uppercase tracking-wider font-semibold text-green-400">
+                    Est. Net Annual Value Saved
+                  </span>
+                  <div className="text-3xl font-extrabold text-green-400 mt-1">
+                    ${roiMetrics.annualDollarSavings.toLocaleString()}
+                  </div>
+                  <span className="text-xs text-slate-400">Projected Return ~{roiMetrics.returnMultiplier}x ROI</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {}
+      <section className="py-16 border-y border-slate-900 bg-slate-950/40 relative z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p className="text-center text-xs font-bold uppercase tracking-widest text-slate-500 mb-8">
+            Built for Strict Enterprise Security & Compliance
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            <div className="p-4 rounded-xl bg-slate-900/40 border border-slate-800/60 flex flex-col items-center">
+              <Lock className="w-6 h-6 text-purple-400 mb-2" />
+              <span className="font-bold text-sm text-slate-200">SOC2 Type II Ready</span>
+              <span className="text-[11px] text-slate-500 mt-1">Encrypted In-Transit & At Rest</span>
+            </div>
+            <div className="p-4 rounded-xl bg-slate-900/40 border border-slate-800/60 flex flex-col items-center">
+              <ShieldCheck className="w-6 h-6 text-indigo-400 mb-2" />
+              <span className="font-bold text-sm text-slate-200">Zero Data Retention</span>
+              <span className="text-[11px] text-slate-500 mt-1">Models Never Retrained On Data</span>
+            </div>
+            <div className="p-4 rounded-xl bg-slate-900/40 border border-slate-800/60 flex flex-col items-center">
+              <Layers className="w-6 h-6 text-purple-400 mb-2" />
+              <span className="font-bold text-sm text-slate-200">Hybrid / On-Prem Deploy</span>
+              <span className="text-[11px] text-slate-500 mt-1">AWS, Azure, GCP, or Private Bare Metal</span>
+            </div>
+            <div className="p-4 rounded-xl bg-slate-900/40 border border-slate-800/60 flex flex-col items-center">
+              <Award className="w-6 h-6 text-indigo-400 mb-2" />
+              <span className="font-bold text-sm text-slate-200">ISO 27001 Guidelines</span>
+              <span className="text-[11px] text-slate-500 mt-1">Continuous Security Auditing</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {}
+      <section id="pricing" className="py-20 relative z-10 bg-slate-950">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto">
+            <h2 className="text-xs uppercase tracking-widest font-bold text-purple-400">Pricing & Delivery Models</h2>
+            <p className="mt-2 text-3xl sm:text-4xl font-bold text-white tracking-tight">
+              Transparent Engagement Tiers
+            </p>
+            <p className="mt-4 text-slate-400">
+              Flexible partnership models whether you need rapid PoC validation or full dedicated enterprise agent architecture.
+            </p>
+
+            {/* Monthly / Annual Toggle */}
+            <div className="mt-8 inline-flex items-center gap-3 p-1 rounded-xl bg-slate-900 border border-slate-800">
+              <button
+                onClick={() => setBillingCycle('monthly')}
+                className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+                  billingCycle === 'monthly' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Monthly Engagement
+              </button>
+              <button
+                onClick={() => setBillingCycle('annual')}
+                className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                  billingCycle === 'annual' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Annual Retainer <span className="px-1.5 py-0.5 rounded bg-purple-950 text-purple-300 text-[10px]">Save 20%</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Pricing Cards Grid */}
+          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Tier 1: Starter / Advisory */}
+            <div className="p-8 rounded-3xl bg-slate-900/60 border border-slate-800 flex flex-col justify-between hover:border-slate-700 transition-all">
+              <div>
+                <h3 className="text-xl font-bold text-white">Starter AI Advisory</h3>
+                <p className="mt-2 text-xs text-slate-400">Ideal for companies testing feasibility and planning AI roadmaps.</p>
+                <div className="mt-6">
+                  <span className="text-4xl font-extrabold text-white">
+                    {billingCycle === 'annual' ? '$2,400' : '$3,000'}
+                  </span>
+                  <span className="text-slate-400 text-sm"> / month</span>
+                </div>
+
+                <ul className="mt-8 space-y-3.5 border-t border-slate-800/80 pt-6">
+                  <li className="flex items-center gap-2 text-sm text-slate-300">
+                    <Check className="w-4 h-4 text-purple-400" /> Architecture Feasibility Review
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-slate-300">
+                    <Check className="w-4 h-4 text-purple-400" /> 1 Custom Prototype / PoC Agent
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-slate-300">
+                    <Check className="w-4 h-4 text-purple-400" /> Model Selection & Cost Tuning
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-slate-300">
+                    <Check className="w-4 h-4 text-purple-400" /> Bi-weekly Architecture Calls
+                  </li>
+                </ul>
+              </div>
+
+              <button className="mt-8 w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-sm transition-colors">
+                Start Advisory Sprint
+              </button>
+            </div>
+
+            {/* Tier 2: Growth / Custom Agents (Featured) */}
+            <div className="p-8 rounded-3xl bg-gradient-to-b from-purple-950/60 via-slate-900 to-slate-900 border-2 border-purple-500/80 relative shadow-2xl shadow-purple-900/30 flex flex-col justify-between">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-purple-600 text-white text-[11px] font-bold tracking-wider uppercase">
+                Most Popular
+              </div>
+
+              <div>
+                <h3 className="text-xl font-bold text-white">Custom Agent Systems</h3>
+                <p className="mt-2 text-xs text-purple-200">Complete end-to-end design, fine-tuning, and production deployment.</p>
+                <div className="mt-6">
+                  <span className="text-4xl font-extrabold text-white">
+                    {billingCycle === 'annual' ? '$6,800' : '$8,500'}
+                  </span>
+                  <span className="text-slate-400 text-sm"> / month</span>
+                </div>
+
+                <ul className="mt-8 space-y-3.5 border-t border-purple-500/30 pt-6">
+                  <li className="flex items-center gap-2 text-sm text-slate-200">
+                    <Check className="w-4 h-4 text-purple-400" /> Multi-Agent Workflow Orchestration
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-slate-200">
+                    <Check className="w-4 h-4 text-purple-400" /> Custom RAG & Vector Database Integration
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-slate-200">
+                    <Check className="w-4 h-4 text-purple-400" /> Tool-Calling (Slack, CRM, REST APIs)
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-slate-200">
+                    <Check className="w-4 h-4 text-purple-400" /> Hallucination Guardrails & Audit Logs
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-slate-200">
+                    <Check className="w-4 h-4 text-purple-400" /> Dedicated Lead AI Engineer
+                  </li>
+                </ul>
+              </div>
+
+              <button className="mt-8 w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-sm shadow-lg shadow-purple-600/30 transition-all">
+                Build Custom Solution
+              </button>
+            </div>
+
+            {/* Tier 3: Enterprise Architecture */}
+            <div className="p-8 rounded-3xl bg-slate-900/60 border border-slate-800 flex flex-col justify-between hover:border-slate-700 transition-all">
+              <div>
+                <h3 className="text-xl font-bold text-white">Enterprise Architecture</h3>
+                <p className="mt-2 text-xs text-slate-400">Dedicated engineering squads for custom fine-tuning & on-prem models.</p>
+                <div className="mt-6">
+                  <span className="text-4xl font-extrabold text-white">Custom</span>
+                </div>
+
+                <ul className="mt-8 space-y-3.5 border-t border-slate-800/80 pt-6">
+                  <li className="flex items-center gap-2 text-sm text-slate-300">
+                    <Check className="w-4 h-4 text-purple-400" /> Private Cloud / Bare-Metal Hosting
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-slate-300">
+                    <Check className="w-4 h-4 text-purple-400" /> Open-Weights Fine-Tuning (Llama 3/Mistral)
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-slate-300">
+                    <Check className="w-4 h-4 text-purple-400" /> 24/7 Dedicated SLA & Engineering Support
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-slate-300">
+                    <Check className="w-4 h-4 text-purple-400" /> Full IP Ownership & Custom Connectors
+                  </li>
+                </ul>
+              </div>
+
+              <button className="mt-8 w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-sm transition-colors">
+                Contact Enterprise Squad
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {}
+      <section id="faq" className="py-20 relative z-10 bg-slate-950 border-t border-slate-900">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Testimonial Quote */}
+          <div className="mb-20 p-8 sm:p-10 rounded-3xl bg-gradient-to-r from-slate-900 via-purple-950/40 to-slate-900 border border-purple-500/20 text-center relative overflow-hidden">
+            <div className="text-purple-400 font-serif text-6xl leading-none opacity-40 select-none">“</div>
+            <p className="text-lg sm:text-2xl font-medium text-slate-200 -mt-4 max-w-3xl mx-auto italic">
+              "NovaAI overhauled our customer operations workflow with custom automated agents. We reduced our response turnaround by 75% while scaling query volume 3x."
+            </p>
+            <div className="mt-6 flex items-center justify-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center text-white font-bold text-sm">
+                EK
+              </div>
+              <div className="text-left">
+                <div className="text-sm font-bold text-white">Elena Rostova</div>
+                <div className="text-xs text-slate-400">VP of Operations, FinTech Global</div>
+              </div>
+            </div>
+          </div>
+
+          {/* FAQs */}
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-white">Frequently Asked Questions</h2>
+            <p className="mt-2 text-slate-400 text-sm">Everything you need to know about our technology, security, and timeline.</p>
+          </div>
+
+          <div className="space-y-4">
+            {FAQS.map((faq, idx) => {
+              const isOpen = openFaq === idx;
+              return (
+                <div
+                  key={idx}
+                  className="rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden transition-colors"
+                >
+                  <button
+                    onClick={() => setOpenFaq(isOpen ? -1 : idx)}
+                    className="w-full p-5 text-left flex justify-between items-center gap-4 focus:outline-none"
+                  >
+                    <span className="font-semibold text-slate-200 text-sm sm:text-base">{faq.q}</span>
+                    <ChevronDown
+                      className={`w-5 h-5 text-slate-400 shrink-0 transition-transform duration-200 ${
+                        isOpen ? 'rotate-180 text-purple-400' : ''
+                      }`}
+                    />
+                  </button>
+
+                  {isOpen && (
+                    <div className="px-5 pb-5 pt-0 text-slate-400 text-xs sm:text-sm leading-relaxed border-t border-slate-800/60 mt-2">
+                      {faq.a}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {}
+      <footer className="bg-slate-950 border-t border-slate-900 py-16 relative z-10 text-slate-400 text-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-10">
+          {/* Col 1 */}
+          <div className="md:col-span-1">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-1.5 rounded-lg bg-purple-600 text-white">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <span className="font-bold text-lg text-white tracking-tight">NovaAI</span>
+            </div>
+            <p className="text-xs leading-relaxed text-slate-400 mb-4">
+              Architecting state-of-the-art autonomous AI solutions and production-ready enterprise workflows.
+            </p>
+            <p className="text-xs text-slate-500">© 2026 NovaAI Solutions Inc. All rights reserved.</p>
+          </div>
+
+          {/* Col 2 */}
+          <div>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-white mb-4">Solutions</h4>
+            <ul className="space-y-2.5 text-xs">
+              <li><a href="#services" className="hover:text-purple-400 transition-colors">Autonomous AI Agents</a></li>
+              <li><a href="#services" className="hover:text-purple-400 transition-colors">Enterprise RAG Systems</a></li>
+              <li><a href="#services" className="hover:text-purple-400 transition-colors">Workflow Automation</a></li>
+              <li><a href="#services" className="hover:text-purple-400 transition-colors">AI Governance & Audit</a></li>
+            </ul>
+          </div>
+
+          {/* Col 3 */}
+          <div>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-white mb-4">Resources</h4>
+            <ul className="space-y-2.5 text-xs">
+              <li><a href="#demo" className="hover:text-purple-400 transition-colors">Live AI Playground</a></li>
+              <li><a href="#calculator" className="hover:text-purple-400 transition-colors">Interactive ROI Calculator</a></li>
+              <li><a href="#pricing" className="hover:text-purple-400 transition-colors">Engagement Pricing</a></li>
+              <li><a href="#faq" className="hover:text-purple-400 transition-colors">Security & SLA FAQ</a></li>
+            </ul>
+          </div>
+
+          {/* Col 4 Newsletter */}
+          <div>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-white mb-4">Stay Informed</h4>
+            <p className="text-xs text-slate-400 mb-3">
+              Subscribe to our monthly technical digest on enterprise AI architecture trends.
+            </p>
+            <form onSubmit={(e) => e.preventDefault()} className="flex flex-col gap-2">
+              <input
+                type="email"
+                placeholder="enter enterprise email..."
+                className="px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 text-xs focus:outline-none focus:border-purple-500"
+              />
+              <button
+                type="submit"
+                className="py-2 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs transition-colors"
+              >
+                Subscribe
+              </button>
+            </form>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+```
